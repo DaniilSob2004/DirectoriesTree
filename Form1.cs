@@ -8,64 +8,22 @@ namespace DirectoriesTree
         TreeView treeView = new TreeView();
         ImageList imageList = new ImageList();
         Icon dirIcon = new Icon("dir3.ico");
-        string pathTXT, pathWORD, pathPDF;
 
         public Form1()
         {
             InitializeComponent();
-
-            treeView.BackColor = Color.FromArgb(255, 48, 48, 48);
-            treeView.ForeColor = Color.White;
-
-            pathTXT = "notepad.exe";
-            pathWORD = GetDefaultWORDProgramPath();
-            pathPDF = GetDefaultPDFProgramPath();
-
             SettingsTreeView();
-
-            string dir = @"C:\1";
-            GetAllDirectories(null, dir);
-        }
-
-        private string GetDefaultWORDProgramPath()
-        {
-            // Получает путь к исполняемому файлу Microsoft Word
-            // ключ реестра, содержащий информацию о установленных версиях Word
-            RegistryKey? registryKey = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\Winword.exe");
-            if (registryKey != null)
-            {
-                object? pathValue = registryKey.GetValue(string.Empty);
-                if (pathValue != null)
-                {
-                    return pathValue + "";
-                }
-                registryKey.Close();
-            }
-            return "";
-        }
-
-        private string GetDefaultPDFProgramPath()
-        {
-            // Получает путь к исполняемому файлу Microsoft PDF
-            // ключ реестра, содержащий информацию о установленных версиях PDF
-            RegistryKey? registryKey = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\PDFXEdit.exe");
-            if (registryKey != null)
-            {
-                object? pathValue = registryKey.GetValue(string.Empty);
-                if (pathValue != null)
-                {
-                    return pathValue + "";
-                }
-                registryKey.Close();
-            }
-            return "";
+            GetAllDirectories(null, @"C:\1");
         }
 
         private void SettingsTreeView()
         {
             treeView.Location = new Point(0, 0);
             treeView.Size = new Size(ClientSize.Width, ClientSize.Height);
+            treeView.BackColor = Color.FromArgb(255, 48, 48, 48);
+            treeView.ForeColor = Color.White;
             treeView.NodeMouseDoubleClick += TreeViewOpenFile_NodeMouseDoubleClick;
+            treeView.BeforeExpand += TreeView_BeforeExpand;
             Controls.Add(treeView);
 
             imageList.Images.Add("dir", dirIcon.ToBitmap());
@@ -73,40 +31,26 @@ namespace DirectoriesTree
             treeView.ImageList = imageList;
         }
 
+        private void TreeView_BeforeExpand(object? sender, TreeViewCancelEventArgs e)
+        {
+            // при открытии какого то элемента, вызывается событие
+        }
+
         private void TreeViewOpenFile_NodeMouseDoubleClick(object? sender, TreeNodeMouseClickEventArgs e)
         {
-            string extension = Path.GetExtension(e.Node.Text);
-            if (extension == ".txt")
+            if (File.Exists(e.Node.Name))
             {
                 try
                 {
-                    Process.Start(pathTXT, e.Node.Name);
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = e.Node.Name,
+                        UseShellExecute = true
+                    });
                 }
                 catch (Exception)
                 {
-                    MessageBox.Show("Не удалось открыть файл .txt");
-                }
-            }
-            else if (extension == ".docx")
-            {
-                try
-                {
-                    Process.Start(pathWORD, e.Node.Name);
-                }
-                catch (Exception)
-                {
-                    MessageBox.Show("Не удалось открыть документ .docx");
-                }
-            }
-            else if (extension == ".pdf")
-            {
-                try
-                {
-                    Process.Start(pathPDF, e.Node.Name);
-                }
-                catch (Exception)
-                {
-                    MessageBox.Show("Не удалось открыть документ .pdf");
+                    MessageBox.Show("Не удалось открыть файл!");
                 }
             }
         }
@@ -144,18 +88,18 @@ namespace DirectoriesTree
             }
 
             // перебор файлов
-            for (int i = 0; i < files.Length; i++)
+            foreach (string f in files)
             {
-                if (!imageList.Images.ContainsKey(Path.GetFileName(files[i])) || !imageList.Images.ContainsKey("file"))
+                if (!imageList.Images.ContainsKey(Path.GetFileName(f)) || !imageList.Images.ContainsKey("file"))
                 {
-                    icon = GetFileOrFolderIcon(files[i], ref imageKey);  // получаем иконку файла
+                    icon = GetFileOrFolderIcon(f, ref imageKey);  // получаем иконку файла
                     imageList.Images.Add(imageKey, icon.ToBitmap());  // добавляем иконку
                 }
 
                 if (node == null)  // если это корни верхнего уровня
-                    treeView.Nodes.Add(files[i], Path.GetFileName(files[i]), imageKey, imageKey);
+                    treeView.Nodes.Add(f, Path.GetFileName(f), imageKey, imageKey);
                 else
-                    node.Nodes.Add(files[i], Path.GetFileName(files[i]), imageKey, imageKey);
+                    node.Nodes.Add(f, Path.GetFileName(f), imageKey, imageKey);
             }
         }
 
