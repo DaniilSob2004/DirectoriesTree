@@ -22,7 +22,9 @@ namespace DirectoriesTree
             pathPDF = GetDefaultPDFProgramPath();
 
             SettingsTreeView();
-            GetAllDirectories(null, @"C:\1");
+
+            string dir = @"C:\1";
+            GetAllDirectories(null, dir);
         }
 
         private string GetDefaultWORDProgramPath()
@@ -111,8 +113,17 @@ namespace DirectoriesTree
 
         private void GetAllDirectories(TreeNode node, string directory)
         {
-            var dirs = Directory.GetDirectories(directory);  // показывает все папки в директории
-            var files = Directory.GetFiles(directory);  // показывает все файлы в директории
+            if (!Directory.Exists(directory)) return;
+
+            string[] dirs = {};
+            string[] files = {};
+            try
+            {
+                dirs = Directory.GetDirectories(directory);  // показывает все папки в директории
+                files = Directory.GetFiles(directory);  // показывает все файлы в директории
+            }
+            catch (UnauthorizedAccessException) { return; }
+
             Icon icon;
             string imageKey = "";  // ключ иконки
 
@@ -135,9 +146,9 @@ namespace DirectoriesTree
             // перебор файлов
             for (int i = 0; i < files.Length; i++)
             {
-                icon = GetFileOrFolderIcon(files[i], ref imageKey);  // получаем иконку файла
-                if (!imageList.Images.ContainsKey(imageKey))  // если такой иконки ещё нет в списке ImageList
+                if (!imageList.Images.ContainsKey(Path.GetFileName(files[i])) || !imageList.Images.ContainsKey("file"))
                 {
+                    icon = GetFileOrFolderIcon(files[i], ref imageKey);  // получаем иконку файла
                     imageList.Images.Add(imageKey, icon.ToBitmap());  // добавляем иконку
                 }
 
@@ -158,6 +169,7 @@ namespace DirectoriesTree
                     // считываем иконку
                     Icon? icon = Icon.ExtractAssociatedIcon(fileInfo.FullName);
                     key = Path.GetExtension(path);  // ключу (для ImageList), присваиваем расширение файла
+
                     if (key == "") key = "file";  // если это пустой файл (без расширения)
                     return icon;
                 }
@@ -171,6 +183,7 @@ namespace DirectoriesTree
                 key = "dir";  // ключу (для ImageList), присваиваем dir
                 return dirIcon;
             }
+
             return null;
         }
     }
